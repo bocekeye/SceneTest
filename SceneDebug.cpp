@@ -1,6 +1,8 @@
 #include "SceneDebug.h"
 #include "SceneTitle.h"
 
+#include "Pad.h"
+
 SceneDebug::SceneDebug()
 {
 }
@@ -15,8 +17,7 @@ void SceneDebug::end()
 
 SceneBase* SceneDebug::update()
 {
-
-
+	
 
 	return new  SceneTitle;
 }
