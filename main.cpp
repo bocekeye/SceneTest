@@ -1,10 +1,18 @@
 #include <DxLib.h>
-#include "SceneManager.h"
+#include "Scene/SceneManager.h"
+#include "Scene/SceneTitle.h"
+#include "Scene/SceneDebug.h"
 #include "game.h"
+#include "Font.h"
+#include "Sound.h"
+#include "Pad.h"
 
 // プログラムは WinMain から始まります
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	//背景色
+	SetBackgroundColor(128, 128, 128,1);
+
 	//ウィンドウモード設定
 	ChangeWindowMode(Game::kWindowMode);
 	//ウィンドウモード名設定
@@ -20,8 +28,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	//ダブルバッファモード
 	SetDrawScreen(DX_SCREEN_BACK);
 
-	SceneManager* pScene = new SceneManager;
-	pScene->init();
+	SceneManager sceneManager;
+#ifdef _DEBUG
+	sceneManager.changeScene(new SceneDebug(sceneManager));
+#else
+	sceneManager.changeScene(new SceneTitle(sceneManager));
+#endif
+
+//	Font::getInstance().load();
+//	Sound::getInstance().load();
 
 	while (ProcessMessage() == 0)
 	{
@@ -30,9 +45,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		//画面のクリア
 		ClearDrawScreen();
 
-		if (!pScene->update())	break;
+		sceneManager.update();
+		sceneManager.draw();
 
-		pScene->draw();
+		Pad::update();
+
+		//Frame Per Second
+		auto fps = GetFPS();
+
+		//描画命令数
+		auto drawcall = GetDrawCallCount();
+
+		DrawFormatString(10, 30, 0xffffff, "FPS = %2.2f", fps);
+		DrawFormatString(10, 60, 0xffffff, "DC = %d", drawcall);
 
 		//裏画面を表画面を入れ替える
 		ScreenFlip();
@@ -40,14 +65,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 		//escキーを押したら終了
 		if (CheckHitKey(KEY_INPUT_ESCAPE)) break;
 
-		while (GetNowHiPerformanceCount() - time < 1667)
+		while (GetNowHiPerformanceCount() - time < 16667)
 		{
 
 		}
 
 	}
 
-	pScene->end();
+
 
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
