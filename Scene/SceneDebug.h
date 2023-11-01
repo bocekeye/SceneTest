@@ -25,6 +25,7 @@ private:
 		SceneTitle,		// 0
 		SceneMain,		// 1
 		SceneResult,	// 2
+		NotMatterLastNum     //ÅŒã‚Ì”(ŠÖŒW‚Í‚È‚¢)
 	};
 
 

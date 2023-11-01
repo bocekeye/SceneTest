@@ -1,4 +1,4 @@
 ファイル名(??),フォント名,入力文字,サイズ
-SceneTitle,CHUNKY,SceneTitle,100
-SceneMain,CHUNKY,SceneMain,100
-SceneResult,Silver,SceneResult,100
+SceneTitle,CHUNKY,SceneTitle,30
+SceneMain,CHUNKY,SceneMain,30
+SceneResult,Silver,SceneResult,30

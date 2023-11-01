@@ -1,4 +1,5 @@
 #include <DxLib.h>
+#include <EffekseerForDXLib.h>
 #include "Scene/SceneManager.h"
 #include "Scene/SceneTitle.h"
 #include "Scene/SceneDebug.h"
@@ -24,9 +25,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	{
 		return -1;			    // エラーが起きたら直ちに終了
 	}
+	//Effekseerの初期化
+	// 引数には画面に表示する最大パーティクル数を設定する。
+	if (Effekseer_Init(8000) == -1)
+	{
+		return -1;
+	}
+	// フルスクリーンウインドウの切り替えでリソースが消えるのを防ぐ。
+	// Effekseerを使用する場合は必ず設定する。
+	SetChangeScreenModeGraphicsSystemResetFlag(FALSE);
+	Effekseer_SetGraphicsDeviceLostCallbackFunctions();
 	
+	//DxLibの3D設定をEffekseerにも反映
+	Effekseer_Sync3DSetting();
+
+	//描画モードを設定する
+	SetDrawMode(DX_DRAWMODE_BILINEAR);
+
+	//Zバッファの書き込み
+	SetUseZBufferFlag(TRUE);
+	SetWriteZBufferFlag(TRUE);
+
 	//ダブルバッファモード
 	SetDrawScreen(DX_SCREEN_BACK);
+
+	SetUseLighting(TRUE);
 
 	SceneManager sceneManager;
 #ifdef _DEBUG
@@ -73,7 +96,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 
-
+	Effkseer_End();
 	DxLib_End();				// ＤＸライブラリ使用の終了処理
 
 	return 0;				    // ソフトの終了 

@@ -13,6 +13,7 @@ SceneDebug::SceneDebug(SceneManager& manager):
 	m_currentSceneSelect(0),
 	m_display(0)
 {
+	
 }
 
 void SceneDebug::init()
@@ -49,14 +50,14 @@ void SceneDebug::update()
 	}
 
 	//ñÓàÛèÍèäêßå¿
-	//**** 3ÇÕìKìñ ****
-	if (m_currentSceneSelect > 2)
+	
+	if (m_currentSceneSelect >= static_cast<int>(SceneNo::NotMatterLastNum))
 	{
 		m_currentSceneSelect = 0;
 	}
 	if (m_currentSceneSelect < 0)
 	{
-		m_currentSceneSelect = 2;
+		m_currentSceneSelect = static_cast<int>(SceneNo::NotMatterLastNum) - 1;	//ç≈å„ÇÃêî-1Ç…Ç∑ÇÈ
 	}
 
 

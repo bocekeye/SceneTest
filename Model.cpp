@@ -59,7 +59,6 @@ void Model::setUseCollision(bool isUse, bool isNeedUpdate)
 		if (isUse)
 		{
 			//使わないから使う
-			//MV1SetupCollInfo(m_modelHandle, -1, 8, 8, 8);
 			m_colFrameIndex = MV1SearchFrame(m_modelHandle, kCollisionFrameName);
 			if (m_colFrameIndex < 0) //見つからなかった　or　エラー
 			{
