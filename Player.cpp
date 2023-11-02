@@ -110,12 +110,13 @@ Player::Player() :
 	m_frameCount(0),
 	m_pos(VGet(0.0f, 0.0f, 0.0f)),
 	m_jumpAcc(0.0f),
+	m_gravity(0.0f),
 	m_angle(0.0f),
 	m_rotateAngle(0.0f),
 	m_cameraAngle(m_angle),
 	m_hp(kMaxHP),
 	m_damageFrame(0),
-	m_isRotation(false),
+	m_isReturnSurface(false),
 	m_isLandingWaterAfterJump(false)
 
 {
@@ -205,16 +206,15 @@ void Player::draw()
 #endif
 
 #ifdef _DEBUG
-	DrawFormatString(110, 50, 0xffffff, "%f", m_jumpAcc);
+	DrawFormatString(110, 50, 0xffffff, "m_gravity = %f", m_gravity);
 	DrawFormatString(110, 70, 0xffffff, "m_pos.x = %f", m_pos.x);
 	DrawFormatString(110, 90, 0xffffff, "m_pos.y = %f", m_pos.y);
 	DrawFormatString(110, 110, 0xffffff, "m_pos.z = %f", m_pos.z);
 
-	DrawFormatString(110, 130, 0xffffff, "m_displayMove.x = %f", m_displayMove.x);
-	DrawFormatString(110, 150, 0xffffff, "m_displayMove.y = %f", m_displayMove.y);
-	DrawFormatString(110, 170, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
+	DrawFormatString(110, 130, 0xffffff, "m_angle = %f", m_angle);
+	//DrawFormatString(110, 150, 0xffffff, "m_displayMove.y = %f", m_displayMove.y);
+	//DrawFormatString(110, 170, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
 
-	
 
 #endif
 
@@ -273,7 +273,6 @@ void Player::updateCamera()
 }
 
 
-//TODO: 名前を変えろ！！
 /// <summary>
 /// 小ジャンプにする予定
 /// </summary>
@@ -283,15 +282,14 @@ void Player::updateSwim()
 	m_pModel->update();
 
 	//プレイヤーの進行方向
+	//引数で指定された回転値分だけY軸回転する回転行列を取得する
 	MATRIX playerRotMtx = MGetRotY(m_angle);
+
+	//行列を使ったベクトルの変換(どこを向いているのか？)
 	VECTOR move = VTransform(kPlayerVec, playerRotMtx);
 
-	m_displayMove = move;
-
-	m_time += 1.0f / 60.0f;
-
 	//m_pos = VAdd(m_pos, move);
-	
+
 	//水面にいる間はまっすぐの状態にする(仮)
 	if (m_pos.y <= 0.0f)
 	{
@@ -308,30 +306,35 @@ void Player::updateSwim()
 	}
 
 	//左右キーで旋回する
-	bool isMoving = false;
 	if (Pad::isPress(PAD_INPUT_LEFT))
 	{
 		m_angle -= kRotSpeed;
-		//isMoving = true;
 	}
 	if (Pad::isPress(PAD_INPUT_RIGHT))
 	{
 		m_angle += kRotSpeed;
-	//	isMoving = true;
 	}
 	
 	//ジャンプ処理
 	bool isJumping = true;	//ジャンプしているフラグ
-	m_jumpAcc += kGravity;
+	//m_isTestPushKey = false;
+
+	m_jumpAcc += m_gravity;
 	m_pos.y += m_jumpAcc;
 
-	if (m_pos.y < 0.0f)
-	{
-		m_pos.y = 0.0f;
-		m_jumpAcc = 0.0f;
 
+	//多分水面に戻った時
+	if (m_pos.y <= 0.0f)
+	{
+	//	m_pos.y = 0.0f;
+	//	m_jumpAcc = 0.0f;
 		isJumping = false;
+		m_isReturnSurface = true;
 		m_isTest = false;
+	}
+	else
+	{
+		
 	}
 	//ジャンプ中ではないとき
 	if (!isJumping)
@@ -340,23 +343,38 @@ void Player::updateSwim()
 		if (Pad::isTrigger(PAD_INPUT_10))
 		{
 			m_jumpAcc = kJumpPower;
+			m_isTestPushKey = true;
+			m_isReturnSurface = false;
 		}
 	}
 	else
 	{	
-		move.y = m_jumpAcc;
-		//元のモデルがどちらを向いているかの情報
-		VECTOR midelDir = VGet(0, 0, -1);
+		m_isReturnSurface = false;
+	}
 
-		//進行方向に向けて変換する？
-		MATRIX rotMtx = MGetRotVec2(midelDir, move);
-		MV1SetMatrix(m_pModel->getModelHandle(), rotMtx);
-
-		if (m_pos.y >= 1.0f)
+	if (m_isTestPushKey)
+	{
+		if (m_isReturnSurface)
 		{
-			m_isTest = true;
+			m_gravity = -kGravity;
+			//潜って水面に到着した時
+			//*****値は表示して見たため計算で求められるなら計算で求める！*****
+			if (m_jumpAcc >= 48.0f)
+			{
+				m_jumpAcc = 0.0f;
+				m_gravity = 0.0f;
+				m_pos.y = 0.0f;
+				m_isTestPushKey = false;
+			}
+		}
+		else
+		{
+			m_gravity = kGravity;
+			
 		}
 	}
+
+
 	if (m_isTest)
 	{
 		if (m_pos.y <= 0)
@@ -367,8 +385,31 @@ void Player::updateSwim()
 		}
 	}
 
+	if (m_pos.y >= 1.0f)
+	{
+		m_isTest = true;
+	}
+
+	printfDx("%f\n", m_jumpAcc);
+
+	//move→モデルがどの方向を向いているかの情報
+	//jumpPosの方向に向ける
+	VECTOR jumpPos = VGet(move.x, m_jumpAcc, move.z);
+	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
+	//プレイヤーの回転情報をかける
+	rotMtx = MMult(rotMtx, playerRotMtx);
+
+	//平行移動行列の取得
+	VECTOR moveTrans = m_pos;
+	MATRIX moveMtx = MGetTranslate(moveTrans);
+
+	//回転行列と平行移動行列をかけて座標に反映する
+	MATRIX moveMult = MMult(rotMtx, moveMtx);
+	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
+
 	m_pEffekseer->update();
-	m_pModel->setPos(m_pos);
+	//m_pModel->setPos(m_pos);
 	m_pModel->setRot(VGet(m_rotateAngle, m_angle, 0.0f));
+	
 	updateCamera();
 }

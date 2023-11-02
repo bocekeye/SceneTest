@@ -75,6 +75,9 @@ private:
 	//ジャンプ処理用加速度
 	float m_jumpAcc;
 
+	//重力
+	float m_gravity;
+
 	//プレイヤーの向いている方向
 	float m_angle;
 
@@ -90,6 +93,8 @@ private:
 	int m_damageFrame;
 
 	bool m_isRotation;
+
+	bool m_isReturnSurface;
 
 	int m_offscreen;
 	int m_psH;
@@ -112,6 +117,8 @@ private:
 
 	//プレイヤー構造体
 	//PlayerData m_playerData;
+
+	bool m_isTestPushKey = false;
 
 };
 

@@ -64,7 +64,6 @@ void SceneMain::update()
     m_pPlayer->update();
     m_pEManager->update();
 
-
     //ƒvƒŒƒCƒ„[‚Æ“G‚Ì“–‚½‚è”»’è
     for (auto& enemy : m_pEManager->getData())
     {
@@ -72,9 +71,6 @@ void SceneMain::update()
 
 
     }
-
-
-
 }
 
 void SceneMain::draw()
