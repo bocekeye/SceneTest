@@ -50,16 +50,8 @@ void SceneMain::update()
         m_manager.changeScene(new SceneDebug(m_manager));
         return;
     }*/
-    // デバッグ描画
-    // XYZ軸
-    float lineSize = 1000.0f;
-    for (int i = -10; i < 11; i++)
-    {
-        DrawLine3D(VGet(-lineSize, 0, i * 100), VGet(lineSize, 0, i * 100),0xff0000);
-        DrawLine3D(VGet(0, -lineSize, 0), VGet(0, lineSize, 0),0x00ff00);
-        DrawLine3D(VGet(i * 100, 0, -lineSize), VGet(i * 100, 0, lineSize),0x0000ff);
-    }
-
+    
+  
 #endif
     m_pPlayer->update();
     m_pEManager->update();
@@ -87,6 +79,17 @@ void SceneMain::draw()
    SetDrawScreen(DX_SCREEN_BACK);
 
 #else
+
+    // デバッグ描画
+    // XYZ軸
+    float lineSize = 1000.0f;
+    for (int i = -10; i < 11; i++)
+    {
+        DrawLine3D(VGet(-lineSize, 0, i * 100), VGet(lineSize, 0, i * 100), 0xff0000);
+        DrawLine3D(VGet(0, -lineSize, 0), VGet(0, lineSize, 0), 0x00ff00);
+        DrawLine3D(VGet(i * 100, 0, -lineSize), VGet(i * 100, 0, lineSize), 0x0000ff);
+    }
+
 
     m_pPlayer->draw();
     m_pEManager->draw();

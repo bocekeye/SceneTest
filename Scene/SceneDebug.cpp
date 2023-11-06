@@ -24,7 +24,7 @@ void SceneDebug::init()
 void SceneDebug::update()
 {
 	//スペースキー
-	if (Pad::isTrigger(PAD_INPUT_10))
+	if (Pad::isTrigger(PAD_INPUT_1))
 	{
 		if (m_currentSceneSelect == static_cast<int>(SceneNo::SceneTitle))
 		{

@@ -35,6 +35,16 @@ public:
 	int getHandle() const;
 	int getColFrameIndex()const;
 
+	void getMaxReachedPoint(float jumpAcc);
+
+	//モデルの大きさの取得
+	float getRight() { return m_pos.x + 157.0f; }
+	float getLeft() { return m_pos.x - 157.0f; }
+	float getTop() { return m_pos.y + 214.0f; }
+	float getBottom() { return m_pos.y - 86.0f; }
+	float getFar() { return m_pos.z + 459.0f; }
+	float getNear() { return m_pos.z - 460.0f; }
+
 private:
 
 	//カメラの更新
@@ -92,8 +102,7 @@ private:
 	//無敵時間
 	int m_damageFrame;
 
-	bool m_isRotation;
-
+	//水面に到着したかどうか
 	bool m_isReturnSurface;
 
 	int m_offscreen;
@@ -113,12 +122,19 @@ private:
 
 	int m_testModel;
 
-	VECTOR m_displayMove;
 
 	//プレイヤー構造体
 	//PlayerData m_playerData;
 
 	bool m_isTestPushKey = false;
+
+	VECTOR m_displayMove = VGet(0.0f, 0.0f, 0.0f);
+
+	//キーをどのくらいの長さ押したか
+	int m_pressKeyTime;
+	bool m_isPushPressKey = false;
+	float m_maxReachedPoint = 0.0f;
+	float m_jumpPowerStrage = 0.0f;
 
 };
 

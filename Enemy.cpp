@@ -7,10 +7,8 @@
 
 namespace
 {
-	const char* const kFileName = "data/enemy.mv1";
+	const char* const kFileName = "data/sake.mv1";
 }
-
-
 
 Enemy::Enemy(Player& player):
 	m_pPlayer(player),
@@ -48,7 +46,7 @@ void Enemy::update()
 		m_isExist = false;
 	}
 
-	m_lastPos = m_pos;
+	//m_lastPos = m_pos;
 	m_testAngle += 15.0f;
 	m_testTime += 5.1f;
 
@@ -59,17 +57,19 @@ void Enemy::update()
 
 	float rad = DX_PI_F * m_testAngle / 180.0f;
 
-	//m_pos.x = m_radius * cos(rad);
-	//m_pos.y = m_radius * sin(rad) + 700.0f;
+//	m_pos.x = m_radius * cos(rad);
+//	m_pos.y = m_radius * sin(rad) + 700.0f;
 
-	//m_pos.y += m_randomNum;
-	//m_pos.z = m_pPlayer.getPos().z;
+//	m_pos.y += m_randomNum;
+//	m_pos.z = m_pPlayer.getPos().z;
 
-	//m_pos.y += m_randomNum;
-	//m_pos.z += m_randomNum;
+//	m_pos.y += m_randomNum;
+//	m_pos.z += m_randomNum;
 
-	//m_pModel->setPos(m_pos);
-	//m_pModel->setRot(VGet(0,0,0));
+	m_pModel->setPos(m_pos);
+	m_pModel->setRot(VGet(0,0,0));
+
+	
 
 #endif
 }
@@ -78,9 +78,10 @@ void Enemy::draw()
 {
 	if (!m_isExist) return;
 
-	//m_pModel->draw();
+	m_pModel->draw();
 
-	DrawCapsule3D(m_pos, m_lastPos,50, 30, 0x0ff00f, 0xffffff, true);
+	//DrawSphere3D(m_pos,50,10,0xffffff,0xffffff,true);
+//	DrawCapsule3D(m_pos, m_lastPos,50, 30, 0x0ff00f, 0xffffff, true);
 	
 }
 

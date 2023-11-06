@@ -26,6 +26,14 @@ public:
 
 	void onDamege();
 
+	//ƒ‚ƒfƒ‹‚Ì‘å‚«‚³‚ÌŽæ“¾—p
+	float getRight() { return m_pos.x + 23.0f; }
+	float getLeft() { return m_pos.x - 23.0f; }
+	float getTop() { return m_pos.y + 66.0f; }
+	float getBottom() { return m_pos.y - 39.0f; }
+	float getFar() { return m_pos.z + 200.0f; }
+	float getNear() { return m_pos.z - 120.0f; }
+
 private:
 
 	std::shared_ptr<Model> m_pModel;

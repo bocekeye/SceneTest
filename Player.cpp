@@ -16,6 +16,7 @@ namespace
 {
 	//ファイル名
 	const char* const kFileName = "data/dolphin.mv1";
+	//const char* const kFileName = "data/Shark.mv1";
 	//const char* const kFileName2 = "data/Swimming.mv1";
 
 	//カメラの初期位置
@@ -117,7 +118,8 @@ Player::Player() :
 	m_hp(kMaxHP),
 	m_damageFrame(0),
 	m_isReturnSurface(false),
-	m_isLandingWaterAfterJump(false)
+	m_isLandingWaterAfterJump(false),
+	m_pressKeyTime(0)
 
 {
 	//3Dモデルの生成
@@ -200,6 +202,8 @@ void Player::draw()
 	DrawTriangle3D(VGet(lineSize / 10, 0, lineSize), VGet(-lineSize / 10, 0, lineSize), VGet(-lineSize / 10, 0, -lineSize), 0x00fffff, true);
 	SetDrawBlendMode(DX_BLENDMODE_NOBLEND,0);
 
+	DrawLine3D(VGet(0, 0, -lineSize), VGet(0, 0, lineSize), 0x00ff00);
+
 	m_pEffekseer->draw();
 	m_pModel->draw();
 
@@ -207,11 +211,11 @@ void Player::draw()
 
 #ifdef _DEBUG
 	DrawFormatString(110, 50, 0xffffff, "m_gravity = %f", m_gravity);
-	DrawFormatString(110, 70, 0xffffff, "m_pos.x = %f", m_pos.x);
+	DrawFormatString(110, 70, 0xffffff, "m_displayMove.x = %f", m_displayMove.x);
 	DrawFormatString(110, 90, 0xffffff, "m_pos.y = %f", m_pos.y);
-	DrawFormatString(110, 110, 0xffffff, "m_pos.z = %f", m_pos.z);
+	DrawFormatString(110, 110, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
 
-	DrawFormatString(110, 130, 0xffffff, "m_angle = %f", m_angle);
+	DrawFormatString(110, 130, 0xffffff, "m_maxReachedPoint = %f", m_maxReachedPoint);
 	//DrawFormatString(110, 150, 0xffffff, "m_displayMove.y = %f", m_displayMove.y);
 	//DrawFormatString(110, 170, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
 
@@ -235,6 +239,11 @@ void Player::onDamage(int damage)
 int Player::getColFrameIndex() const
 {
 	return m_pModel->getColFrameIndex();
+}
+
+void Player::getMaxReachedPoint(float jumpAcc)
+{
+	m_maxReachedPoint = jumpAcc -2.0f;	
 }
 
 int Player::getHandle()const
@@ -288,6 +297,8 @@ void Player::updateSwim()
 	//行列を使ったベクトルの変換(どこを向いているのか？)
 	VECTOR move = VTransform(kPlayerVec, playerRotMtx);
 
+	m_displayMove = move;
+
 	//m_pos = VAdd(m_pos, move);
 
 	//水面にいる間はまっすぐの状態にする(仮)
@@ -322,29 +333,33 @@ void Player::updateSwim()
 	m_jumpAcc += m_gravity;
 	m_pos.y += m_jumpAcc;
 
-
 	//多分水面に戻った時
 	if (m_pos.y <= 0.0f)
 	{
-	//	m_pos.y = 0.0f;
-	//	m_jumpAcc = 0.0f;
 		isJumping = false;
 		m_isReturnSurface = true;
 		m_isTest = false;
 	}
-	else
-	{
-		
-	}
+
 	//ジャンプ中ではないとき
 	if (!isJumping)
 	{
 		//SPACEキーでジャンプする
-		if (Pad::isTrigger(PAD_INPUT_10))
+		if (Pad::isTrigger(PAD_INPUT_1))
 		{
 			m_jumpAcc = kJumpPower;
+			m_jumpPowerStrage = kJumpPower;
 			m_isTestPushKey = true;
 			m_isReturnSurface = false;
+			m_pressKeyTime = 0;
+		}
+		if (Pad::isTrigger(PAD_INPUT_2))
+		{
+			m_jumpAcc = kJumpPower / 2;
+			m_jumpPowerStrage = kJumpPower / 2;
+			m_isTestPushKey = true;
+			m_isReturnSurface = false;
+			m_pressKeyTime = 0;
 		}
 	}
 	else
@@ -352,14 +367,18 @@ void Player::updateSwim()
 		m_isReturnSurface = false;
 	}
 
+	//最高到達点の取得
+	getMaxReachedPoint(m_jumpPowerStrage);
+
+	//ジャンプキーを押した場合
 	if (m_isTestPushKey)
 	{
+		//潜って水面に到着した時
 		if (m_isReturnSurface)
 		{
 			m_gravity = -kGravity;
-			//潜って水面に到着した時
-			//*****値は表示して見たため計算で求められるなら計算で求める！*****
-			if (m_jumpAcc >= 48.0f)
+//*****値は表示して見たため計算で求められるなら計算で求める！*****
+			if (m_jumpAcc >= m_maxReachedPoint)
 			{
 				m_jumpAcc = 0.0f;
 				m_gravity = 0.0f;
@@ -370,7 +389,6 @@ void Player::updateSwim()
 		else
 		{
 			m_gravity = kGravity;
-			
 		}
 	}
 
@@ -395,15 +413,25 @@ void Player::updateSwim()
 	//move→モデルがどの方向を向いているかの情報
 	//jumpPosの方向に向ける
 	VECTOR jumpPos = VGet(move.x, m_jumpAcc, move.z);
+
+	//モデルの向きからジャンプする向きへ変換する回転行列を取得する
 	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
+
 	//プレイヤーの回転情報をかける
 	rotMtx = MMult(rotMtx, playerRotMtx);
+
+#if false
+	//逆行列を求める
+	MATRIX invMtx = MInverse(rotMtx);
+	rotMtx = MMult(rotMtx, playerRotMtx);
+#endif
 
 	//平行移動行列の取得
 	VECTOR moveTrans = m_pos;
 	MATRIX moveMtx = MGetTranslate(moveTrans);
 
 	//回転行列と平行移動行列をかけて座標に反映する
+	
 	MATRIX moveMult = MMult(rotMtx, moveMtx);
 	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
 
