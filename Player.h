@@ -137,7 +137,7 @@ private:
 
 	VECTOR m_displayMove = VGet(0.0f, 0.0f, 0.0f);
 
-	VECTOR m_vec;
+	VECTOR m_direction;
 
 	//ƒL[‚ğ‚Ç‚Ì‚­‚ç‚¢‚Ì’·‚³‰Ÿ‚µ‚½‚©
 	int m_pressKeyTime;
