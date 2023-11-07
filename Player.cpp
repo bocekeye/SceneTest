@@ -119,7 +119,8 @@ Player::Player() :
 	m_damageFrame(0),
 	m_isReturnSurface(false),
 	m_isLandingWaterAfterJump(false),
-	m_pressKeyTime(0)
+	m_pressKeyTime(0),
+	m_vec(VGet(0.0f, m_jumpAcc, -30.0f))
 
 {
 	//3Dモデルの生成
@@ -160,7 +161,7 @@ void Player::update()
 void Player::draw()
 {
 
-	float lineSize = 10000.0f;
+	float lineSize = 50000.0f;
 	int testH = m_pModel->getModelHandle();
 
 #if false
@@ -281,7 +282,6 @@ void Player::updateCamera()
 	SetCameraPositionAndTarget_UpVecY(m_cameraPos, m_targetPos);
 }
 
-
 /// <summary>
 /// 小ジャンプにする予定
 /// </summary>
@@ -291,13 +291,45 @@ void Player::updateSwim()
 	m_pModel->update();
 
 	//プレイヤーの進行方向
+	//もともと向いている方向
+	VECTOR beforeFace = (VGet(0.0f, 0.0f, -1.0f));
+		
 	//引数で指定された回転値分だけY軸回転する回転行列を取得する
 	MATRIX playerRotMtx = MGetRotY(m_angle);
 
-	//行列を使ったベクトルの変換(どこを向いているのか？)
-	VECTOR move = VTransform(kPlayerVec, playerRotMtx);
+	//回転行列を使ったベクトルの変換(どこを向いて進んでいるのか？)
+	VECTOR move = VTransform(m_vec, playerRotMtx);
+
+	//もともと向いている方向から現在向いている方向の回転行列を求める
+	MATRIX targetPos = MGetRotVec2(beforeFace,move);
 
 	m_displayMove = move;
+
+	//move→モデルがどの方向を向いているかの情報
+	//jumpPosの方向に向ける
+	VECTOR jumpPos = VGet(move.x, m_jumpAcc, move.z);
+
+	//モデルの向きからジャンプする向きへ変換する回転行列を取得する
+	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
+
+	//プレイヤーの回転情報をかける
+	rotMtx = MMult(rotMtx, playerRotMtx);
+
+#if false
+	//逆行列を求める
+	MATRIX invMtx = MInverse(rotMtx);
+	rotMtx = MMult(rotMtx, playerRotMtx);
+#endif
+
+	//平行移動行列の取得
+	VECTOR moveTrans = m_pos;
+	MATRIX moveMtx = MGetTranslate(moveTrans);
+
+	//回転行列と平行移動行列をかけて座標に反映する
+	MATRIX moveMult = MMult(rotMtx, moveMtx);
+	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
+
+
 
 	//m_pos = VAdd(m_pos, move);
 
@@ -410,34 +442,11 @@ void Player::updateSwim()
 
 	printfDx("%f\n", m_jumpAcc);
 
-	//move→モデルがどの方向を向いているかの情報
-	//jumpPosの方向に向ける
-	VECTOR jumpPos = VGet(move.x, m_jumpAcc, move.z);
 
-	//モデルの向きからジャンプする向きへ変換する回転行列を取得する
-	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
-
-	//プレイヤーの回転情報をかける
-	rotMtx = MMult(rotMtx, playerRotMtx);
-
-#if false
-	//逆行列を求める
-	MATRIX invMtx = MInverse(rotMtx);
-	rotMtx = MMult(rotMtx, playerRotMtx);
-#endif
-
-	//平行移動行列の取得
-	VECTOR moveTrans = m_pos;
-	MATRIX moveMtx = MGetTranslate(moveTrans);
-
-	//回転行列と平行移動行列をかけて座標に反映する
-	
-	MATRIX moveMult = MMult(rotMtx, moveMtx);
-	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
 
 	m_pEffekseer->update();
 	//m_pModel->setPos(m_pos);
-	m_pModel->setRot(VGet(m_rotateAngle, m_angle, 0.0f));
+	m_pModel->setRot(VGet(0.0f, m_angle, 0.0f));
 	
 	updateCamera();
 }

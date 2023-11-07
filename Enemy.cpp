@@ -7,19 +7,26 @@
 
 namespace
 {
+	//ファイル名
 	const char* const kFileName = "data/sake.mv1";
+
+	//アニメーション番号
+	constexpr int kSwimAnimNo = 0;		//泳ぐモーション
 }
 
 Enemy::Enemy(Player& player):
 	m_pPlayer(player),
-	m_pos(VGet(0,100,0)),
+	m_pos(VGet(0,100,-1000)),
 	m_isExist(true),
 	m_randomNum(0.0f),
-	m_radius(500.0f)
+	m_radius(500.0f),
+	m_createRandomInterval(0)
 {
 	//3Dモデルの生成
 	m_pModel = std::make_shared<Model>(kFileName);
-	m_pModel->setUseCollision(true,true);
+	
+	//アニメーションの設置
+	m_pModel->setAnimation(kSwimAnimNo, true, true);
 }
 
 void Enemy::init()
@@ -30,47 +37,30 @@ void Enemy::init()
 	std::random_device rd;
 	std::mt19937 mt(rd());
 	//-50.0f～50.0f
-	std::uniform_real_distribution <float> rdt(-500.0f, 500.0f);
+	std::uniform_real_distribution <float> rdt(-100.0f, 100.0f);
 
 	m_randomNum = rdt(mt);
-
 }
 
 void Enemy::update()
 {
 	if (!m_isExist) return;
 	
-#ifdef _DEBUG
-	if (m_pos.x >= 2000.0f || m_pos.x <= -2000.0f)
-	{
-		m_isExist = false;
-	}
+	//アニメーションを進める
+	m_pModel->update();
 
-	//m_lastPos = m_pos;
+#ifdef _DEBUG
+
+	m_lastPos.x = m_pos.x + 200.0f;
 	m_testAngle += 15.0f;
 	m_testTime += 5.1f;
-
-	if (m_testInterval++ >= 300)
-	{
-		m_isExist = false;
-	}
-
 	float rad = DX_PI_F * m_testAngle / 180.0f;
 
-//	m_pos.x = m_radius * cos(rad);
-//	m_pos.y = m_radius * sin(rad) + 700.0f;
-
-//	m_pos.y += m_randomNum;
-//	m_pos.z = m_pPlayer.getPos().z;
-
-//	m_pos.y += m_randomNum;
-//	m_pos.z += m_randomNum;
+	m_pos.z -= 10.0f;
 
 	m_pModel->setPos(m_pos);
 	m_pModel->setRot(VGet(0,0,0));
-
 	
-
 #endif
 }
 
@@ -81,21 +71,29 @@ void Enemy::draw()
 	m_pModel->draw();
 
 	//DrawSphere3D(m_pos,50,10,0xffffff,0xffffff,true);
-//	DrawCapsule3D(m_pos, m_lastPos,50, 30, 0x0ff00f, 0xffffff, true);
-	
+
 }
 
 void Enemy::onDamege()
 {
-	//printfDx("SSS");
+	m_isExist = false;
 }
 
-//int Enemy::getColFrameIndex() const
-//{
-//	return m_pModel->getColFrameIndex();
-//}
-//
-//int Enemy::getHandle()const
-//{
-//	return m_pModel->getModelHandle();
-//}
+/// <summary>
+/// 当たり判定
+/// </summary>
+/// <param name="player"></param>
+/// <returns></returns>
+bool Enemy::isCol(Player& player)
+{
+	if (!m_isExist) return false;
+
+	if (player.getLeft() > getRight()) return false;
+	if (player.getRight() < getLeft()) return false;
+	if (player.getTop() < getBottom()) return false;
+	if (player.getBottom() > getTop()) return false;
+	if (player.getNear() > getFar()) return false;
+	if (player.getFar() < getNear()) return false;
+
+	return true;
+}

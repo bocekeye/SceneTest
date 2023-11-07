@@ -11,6 +11,8 @@
 class PlayerManager;
 class Model;
 class EffekseerManager;
+class Enemy;
+
 class Player
 {
 public:
@@ -36,6 +38,8 @@ public:
 	int getColFrameIndex()const;
 
 	void getMaxReachedPoint(float jumpAcc);
+
+	//bool isCol(Enemy& enemy);
 
 	//モデルの大きさの取得
 	float getRight() { return m_pos.x + 157.0f; }
@@ -67,6 +71,9 @@ private:
 private:
 	//メンバ関数ポインタ
 	void(Player::* m_updateFunc)();
+
+	//エネミークラスを使うポインタ
+//	std::shared_ptr<Enemy>
 
 	//プレイヤーのモデル
 	std::shared_ptr<Model> m_pModel;
@@ -129,6 +136,8 @@ private:
 	bool m_isTestPushKey = false;
 
 	VECTOR m_displayMove = VGet(0.0f, 0.0f, 0.0f);
+
+	VECTOR m_vec;
 
 	//キーをどのくらいの長さ押したか
 	int m_pressKeyTime;

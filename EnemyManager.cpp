@@ -6,21 +6,26 @@ EnemyManager::EnemyManager(Player& player):
 	m_player(player),
 	m_addCount(0)
 {
+	m_pEnemy.push_back(std::make_shared<Enemy>(m_player));
 }
 
 void EnemyManager::init()
 {
+	m_pEnemy.back()->init();
 }
 
 void EnemyManager::update()
 {
 #ifdef _DEBUG
-
-	if (m_addCount++ >= 10)
+	
+	for (auto& enemy : m_pEnemy)
 	{
-		addEnemy();
-		m_addCount = 0;
+		if(!enemy->isExist())
+		{		
+			addEnemy();		
+		}
 	}
+	
 #endif
 
 	//‘¶İ‚µ‚È‚¢ê‡‚ÍÁ‚·

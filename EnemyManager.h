@@ -24,7 +24,6 @@ public:
 
 	std::list<std::shared_ptr<Enemy>> getData(){return m_pEnemy;}
 
-
 private:
 	std::list<std::shared_ptr<Enemy>>  m_pEnemy;
 	Player& m_player;

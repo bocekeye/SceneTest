@@ -7,7 +7,10 @@ class SceneManager;
 class Player;
 class EnemyManager;
 class PlayerManager;
+class Log;
+class Ring;
 class EffekseerManager;
+
 class SceneMain : public SceneBase
 {
 public:
@@ -26,6 +29,10 @@ private:
 	std::shared_ptr<Player> m_pPlayer;
 	//エネミーを使うためのポインタ
 	std::shared_ptr<EnemyManager> m_pEManager;
+	//丸太を使うためのポインタ
+	std::shared_ptr<Log> m_pLog;
+	//輪っかを使うためのポインタ
+	std::shared_ptr<Ring> m_pRing;
 
 	EffekseerManager* m_pEffekseer;
 
