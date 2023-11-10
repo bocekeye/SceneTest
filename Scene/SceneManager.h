@@ -36,7 +36,6 @@ public:
 	/// <summary>
 	/// 各シーンの更新を行う
 	/// </summary>
-	/// <param name="input">入力ステート</param>
 	void update();
 	/// <summary>
 	/// 各シーンの描画を行う

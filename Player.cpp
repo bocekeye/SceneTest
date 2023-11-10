@@ -4,8 +4,10 @@
 #include <cassert>
 #include <array>
 #include "Model.h"
+#include "ultrasound.h"
 #include "Effekseer.h"
 #include "PlayerManager.h"
+#include "Scene/SceneMain.h"
 #include "game.h"
 
 #include <DxLib.h>
@@ -17,10 +19,11 @@ namespace
 	//ファイル名
 	const char* const kFileName = "data/dolphin.mv1";
 	//const char* const kFileName = "data/Shark.mv1";
-	//const char* const kFileName2 = "data/Swimming.mv1";
+	//const char* const kFileName = "data/manta.mv1";
 
 	//カメラの初期位置
-	constexpr VECTOR kCameraPos{ 0.0f, 920.0f, 800.0f };
+	constexpr VECTOR kCameraPos{ 0.0f, 620.0f, 800.0f };
+	//constexpr VECTOR kCameraPos{ 0.0f, 200.0f, 1000.0f };
 	constexpr VECTOR kCameraTarget{ 0.0f, 500.0f, -10.0f };
 
 	//プレイヤーの移動量
@@ -31,8 +34,15 @@ namespace
 
 	//ジャンプ力
 	constexpr float kJumpPower = 50.0f;
+
 	//重力
 	constexpr float kGravity = -1.0f;
+
+	//潜水力
+	constexpr float kDivePower = -45.0f;
+
+	//浮力
+	constexpr float kBuoyancy = 1.0f;
 
 	//アニメーション番号
 	constexpr int kSwimAnimNo = 1;		//泳ぐモーション
@@ -44,7 +54,7 @@ namespace
 	constexpr float kColRudius = 60.0f;
 
 	//最大HP
-	constexpr int kMaxHP = 100;
+	constexpr int kMaxHP = 10;
 }
 
 void Player::drawGraphWithShader(int x, int y, int texH, int norm, int psH, int vsH, bool transFlag)
@@ -111,16 +121,21 @@ Player::Player() :
 	m_frameCount(0),
 	m_pos(VGet(0.0f, 0.0f, 0.0f)),
 	m_jumpAcc(0.0f),
+	m_diveAcc(0.0f),
 	m_gravity(0.0f),
+	m_buoyancy(0.0f),
 	m_angle(0.0f),
 	m_rotateAngle(0.0f),
 	m_cameraAngle(m_angle),
 	m_hp(kMaxHP),
 	m_damageFrame(0),
 	m_isReturnSurface(false),
+	m_circleGauge(0),
 	m_isLandingWaterAfterJump(false),
 	m_pressKeyTime(0),
-	m_direction(VGet(0.0f, 0.0f, -30.0f))
+	m_direction(VGet(0.0f, 0.0f, -30.0f)),
+	m_isDameged(false),
+	m_isDisplayEffekseer(false)
 
 {
 	//3Dモデルの生成
@@ -129,6 +144,8 @@ Player::Player() :
 	m_pEffekseer = new EffekseerManager;
 
 	m_pModel->setAnimation(static_cast<int>(MotionType::swim), true, true);
+
+	m_circleGauge = LoadGraph("data/circle.png");
 
 	//構造体の中身の初期化
 	//m_playerData.hp = 0;
@@ -150,7 +167,7 @@ Player::~Player()
 
 void Player::init()
 {
-	
+
 }
 
 void Player::update()
@@ -160,9 +177,13 @@ void Player::update()
 
 void Player::draw()
 {
+	if (m_damageFrame % 2 == 1)
+	{
+		return;
+	}
 
 	float lineSize = 50000.0f;
-	int testH = m_pModel->getModelHandle();
+	
 
 #if false
 
@@ -196,14 +217,40 @@ void Player::draw()
 	//drawGraphWithShader(m_pos.x, m_pos.y, m_offscreen, m_distH, m_psH, -1, true);
 
 #else
-
-
-	SetDrawBlendMode(DX_BLENDMODE_ALPHA,50);
-	DrawTriangle3D(VGet(-lineSize / 10, 0, -lineSize), VGet(lineSize / 10, 0, -lineSize), VGet(lineSize / 10, 0, lineSize), 0x00fffff, true);
-	DrawTriangle3D(VGet(lineSize / 10, 0, lineSize), VGet(-lineSize / 10, 0, lineSize), VGet(-lineSize / 10, 0, -lineSize), 0x00fffff, true);
-	SetDrawBlendMode(DX_BLENDMODE_NOBLEND,0);
-
 	DrawLine3D(VGet(0, 0, -lineSize), VGet(0, 0, lineSize), 0x00ff00);
+
+#if true
+	int handle = m_pModel->getModelHandle();
+
+	//どの場所に表示するか
+	int frameNo = MV1SearchFrame(handle, "Head_end");
+	//HPバーを表示する座標データのワールド座標を取得する
+	VECTOR hpPos = MV1GetFramePosition(handle, frameNo);
+	//HPバー表示位置のワールド座標をスクリーン座標に変換する
+	VECTOR screenPos = ConvWorldPosToScreenPos(hpPos);
+	if (screenPos.z <= 0.0f || screenPos.z >= 1.0f)
+	{
+		//表示範囲外の場合何も表示しない
+		return;
+	}
+
+	//最大HPに対する現在のHPの割合を計算する
+	float hpRate = static_cast<float>(m_hp) / static_cast<float> (kMaxHP);
+
+	//HPバーの長さを計算する
+	float barWidth = 64 * hpRate;
+
+	//現在のHP
+	DrawBoxAA(screenPos.x - 64 / 2, screenPos.y,
+		screenPos.x - 64 / 2 + barWidth, screenPos.y + 10,
+		0x00ff00, true);
+
+
+	//枠線
+	DrawBoxAA(screenPos.x - 64 / 2, screenPos.y,
+		screenPos.x + 64 / 2, screenPos.y + 10,
+		0xffffff, false);
+#endif
 
 	m_pEffekseer->draw();
 	m_pModel->draw();
@@ -211,12 +258,14 @@ void Player::draw()
 #endif
 
 #ifdef _DEBUG
-	DrawFormatString(110, 50, 0xffffff, "m_gravity = %f", m_gravity);
+
+	DrawString(150,20,"イルカ",0xffffff);
+	DrawFormatString(110, 50, 0xffffff, "m_pos.y = %f", m_pos.y);
 	DrawFormatString(110, 70, 0xffffff, "m_displayMove.x = %f", m_displayMove.x);
-	DrawFormatString(110, 90, 0xffffff, "m_pos.y = %f", m_pos.y);
+	DrawFormatString(110, 90, 0xffffff, "m_gravity = %f", m_gravity);
 	DrawFormatString(110, 110, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
 
-	DrawFormatString(110, 130, 0xffffff, "m_maxReachedPoint = %f", m_maxReachedPoint);
+	DrawFormatString(110, 130, 0xffffff, "m_hp = %d", m_hp);
 	//DrawFormatString(110, 150, 0xffffff, "m_displayMove.y = %f", m_displayMove.y);
 	//DrawFormatString(110, 170, 0xffffff, "m_displayMove.z = %f", m_displayMove.z);
 
@@ -235,6 +284,7 @@ void Player::onDamage(int damage)
 	if (m_damageFrame > 0) return;
 	m_hp -= damage;
 	m_damageFrame = 60 * 2;
+	m_isDameged = true;
 }
 
 int Player::getColFrameIndex() const
@@ -246,6 +296,7 @@ void Player::getMaxReachedPoint(float jumpAcc)
 {
 	m_maxReachedPoint = jumpAcc -2.0f;	
 }
+
 
 int Player::getHandle()const
 {
@@ -287,6 +338,16 @@ void Player::updateCamera()
 /// </summary>
 void Player::updateSwim()
 {
+	//ダメージを食らったとき
+	if (m_isDameged)
+	{
+		if (m_damageFrame-- <= 0)
+		{
+			m_damageFrame = 0;
+			m_isDameged = false;
+		}
+	}
+
 	//アニメーションを進める
 	m_pModel->update();
 
@@ -294,6 +355,188 @@ void Player::updateSwim()
 	//もともと向いている方向
 	VECTOR beforeFace = (VGet(0.0f, 0.0f, -1.0f));
 		
+	//引数で指定された回転値分だけY軸回転する回転行列を取得する
+	MATRIX playerRotMtx = MGetRotY(m_angle);
+
+	//回転行列を使ったベクトルの変換(現在どこを向いて進んでいるのか？)
+	//move→モデルがどの方向を向いているかの情報
+	VECTOR move = VTransform(m_direction, playerRotMtx);
+
+	m_pos = VAdd(m_pos, move);
+
+	//水面にいる間はまっすぐの状態にする(仮)
+	if (m_pos.y <= 0.0f)
+	{
+		m_rotateAngle = 0.0f;
+	}
+
+	if (Pad::isPress(PAD_INPUT_UP))
+	{
+		m_pos = VAdd(m_pos, move);
+	}
+	if (Pad::isPress(PAD_INPUT_DOWN))
+	{
+		m_pos = VSub(m_pos, move);
+	}
+
+	//左右キーで旋回する
+	if (Pad::isPress(PAD_INPUT_LEFT))
+	{
+		m_angle -= kRotSpeed;
+	}
+	if (Pad::isPress(PAD_INPUT_RIGHT))
+	{
+		m_angle += kRotSpeed;
+	}
+
+	//潜るキー
+	if (Pad::isTrigger(PAD_INPUT_3))
+	{
+		m_diveAcc = kDivePower;
+		m_buoyancy = kBuoyancy;
+		m_updateFunc = &Player::updateDive;
+	}
+
+	//(仮)超音波を出す
+	if (Pad::isTrigger(PAD_INPUT_4))
+	{
+		VECTOR shotStart =	m_pos;
+		//shotStart.z = getFar();
+
+		//超音波ベクトルの生成
+		VECTOR ultrasoundVec = move;
+		ultrasoundVec = VNorm(ultrasoundVec);
+		ultrasoundVec = VScale(ultrasoundVec,100.0f);
+		m_pSceneMain->ultrasoundStart(shotStart, ultrasoundVec);
+	}
+
+	//ジャンプ処理
+	bool isJumping = true;	//ジャンプしているフラグ
+	//m_isTestPushKey = false;
+
+	m_jumpAcc += m_gravity;
+	m_pos.y += m_jumpAcc;
+
+	//多分水面に戻った時
+	if (m_pos.y <= 0.0f)
+	{
+		isJumping = false;
+		m_isReturnSurface = true;
+		m_isSurfaceTest = false;
+		//m_isTest = false;
+	}
+
+	//ジャンプ中ではないとき
+	if (!isJumping)
+	{
+		//SPACEキーでジャンプする
+		if (Pad::isTrigger(PAD_INPUT_1))
+		{
+			m_jumpAcc = kJumpPower;
+			m_jumpPowerStrage = kJumpPower;
+			m_isTestPushKey = true;
+			m_isReturnSurface = false;
+			m_pressKeyTime = 0;
+		}
+		if (Pad::isTrigger(PAD_INPUT_2))
+		{
+			m_jumpAcc = kJumpPower / 2;
+			m_jumpPowerStrage = kJumpPower / 2;
+			m_isTestPushKey = true;
+			m_isReturnSurface = false;
+			m_pressKeyTime = 0;
+		}
+	}
+	else
+	{	
+		//m_isReturnSurface = false;
+		//ジャンプ中の時はエフェクシアは表示させない
+		m_isDisplayEffekseer = false;
+		m_isTest = true;
+	}
+
+	//最高到達点の取得
+	getMaxReachedPoint(m_jumpPowerStrage);
+
+	//ジャンプキーを押した場合
+	if (m_isTestPushKey)
+	{
+		//潜って水面に到着した時
+		if (m_isReturnSurface)
+		{
+			m_isDisplayEffekseer = true;
+			m_isSurfaceTest = true;
+			m_gravity = kBuoyancy;
+//*****値は表示して見たため計算で求められるなら計算で求める！*****
+			if (m_jumpAcc >= m_maxReachedPoint)
+			{
+				m_jumpAcc = 0.0f;
+				m_gravity = 0.0f;
+				m_pos.y = 0.0f;
+				m_isTestPushKey = false;
+			}
+		}
+		else
+		{
+			m_gravity = kGravity;
+			m_isSurfaceTest = false;
+		}
+	}
+
+
+	if (m_isDisplayEffekseer && m_isTest)
+	{
+		//エフェクトの発生
+		m_pEffekseer->testUpdate(m_pos);
+		m_isTest = false;	
+	}
+
+
+	//printfDx("%f\n", m_jumpAcc);
+
+	move = VGet(move.x, m_jumpAcc, move.z);				//jump方向
+	
+	//もともと向いている方向から現在向いている方向の回転行列を求める
+	MATRIX targetPos = MGetRotVec2(beforeFace, move);
+
+	m_displayMove = move;
+
+	//モデルの向きからジャンプする向きへ変換する回転行列を取得する
+//	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
+
+	//プレイヤーの回転情報をかける
+//	rotMtx = MMult(rotMtx, playerRotMtx);
+
+#if false
+	//逆行列を求める
+	MATRIX invMtx = MInverse(rotMtx);
+	rotMtx = MMult(rotMtx, playerRotMtx);
+#endif
+
+	//平行移動行列の取得
+	VECTOR moveTrans = m_pos;
+	MATRIX moveMtx = MGetTranslate(moveTrans);
+
+	//回転行列と平行移動行列をかけて座標に反映する
+	MATRIX moveMult = MMult(targetPos, moveMtx);
+	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
+
+	m_pEffekseer->update();
+	//m_pModel->setPos(m_pos);
+	//m_pModel->setRot(VGet(0.0f, m_angle, 0.0f));
+	
+	updateCamera();
+}
+
+//潜る
+void Player::updateDive()
+{
+	m_pModel->update();
+
+	//プレイヤーの進行方向
+	//もともと向いている方向
+	VECTOR beforeFace = (VGet(0.0f, 0.0f, -1.0f));
+
 	//引数で指定された回転値分だけY軸回転する回転行列を取得する
 	MATRIX playerRotMtx = MGetRotY(m_angle);
 
@@ -327,109 +570,22 @@ void Player::updateSwim()
 	{
 		m_angle += kRotSpeed;
 	}
+
+	m_diveAcc += m_buoyancy;
+	m_pos.y += m_diveAcc;
 	
-	//ジャンプ処理
-	bool isJumping = true;	//ジャンプしているフラグ
-	//m_isTestPushKey = false;
-
-	m_jumpAcc += m_gravity;
-	m_pos.y += m_jumpAcc;
-
-	//多分水面に戻った時
-	if (m_pos.y <= 0.0f)
+	if (m_pos.y >= 0.0f)
 	{
-		isJumping = false;
-		m_isReturnSurface = true;
-		m_isTest = false;
+		m_pos.y = 0.0f;
+		m_diveAcc = 0.0f;
+		m_buoyancy = 0.0f;
+		m_updateFunc = &Player::updateSwim;
 	}
 
-	//ジャンプ中ではないとき
-	if (!isJumping)
-	{
-		//SPACEキーでジャンプする
-		if (Pad::isTrigger(PAD_INPUT_1))
-		{
-			m_jumpAcc = kJumpPower;
-			m_jumpPowerStrage = kJumpPower;
-			m_isTestPushKey = true;
-			m_isReturnSurface = false;
-			m_pressKeyTime = 0;
-		}
-		if (Pad::isTrigger(PAD_INPUT_2))
-		{
-			m_jumpAcc = kJumpPower / 2;
-			m_jumpPowerStrage = kJumpPower / 2;
-			m_isTestPushKey = true;
-			m_isReturnSurface = false;
-			m_pressKeyTime = 0;
-		}
-	}
-	else
-	{	
-		m_isReturnSurface = false;
-	}
-
-	//最高到達点の取得
-	getMaxReachedPoint(m_jumpPowerStrage);
-
-	//ジャンプキーを押した場合
-	if (m_isTestPushKey)
-	{
-		//潜って水面に到着した時
-		if (m_isReturnSurface)
-		{
-			m_gravity = -kGravity;
-//*****値は表示して見たため計算で求められるなら計算で求める！*****
-			if (m_jumpAcc >= m_maxReachedPoint)
-			{
-				m_jumpAcc = 0.0f;
-				m_gravity = 0.0f;
-				m_pos.y = 0.0f;
-				m_isTestPushKey = false;
-			}
-		}
-		else
-		{
-			m_gravity = kGravity;
-		}
-	}
-
-
-	if (m_isTest)
-	{
-		if (m_pos.y <= 0)
-		{
-			//エフェクトの発生
-			m_pEffekseer->testUpdate(m_pos);
-			m_isTest = false;
-		}
-	}
-
-	if (m_pos.y >= 1.0f)
-	{
-		m_isTest = true;
-	}
-
-	printfDx("%f\n", m_jumpAcc);
-
-	move = VGet(move.x, m_jumpAcc, move.z);				//jump方向
+	move = VGet(move.x, m_diveAcc, move.z);				//dive方向
 
 	//もともと向いている方向から現在向いている方向の回転行列を求める
 	MATRIX targetPos = MGetRotVec2(beforeFace, move);
-
-	m_displayMove = move;
-
-	//モデルの向きからジャンプする向きへ変換する回転行列を取得する
-//	MATRIX rotMtx = MGetRotVec2(move, jumpPos);
-
-	//プレイヤーの回転情報をかける
-//	rotMtx = MMult(rotMtx, playerRotMtx);
-
-#if false
-	//逆行列を求める
-	MATRIX invMtx = MInverse(rotMtx);
-	rotMtx = MMult(rotMtx, playerRotMtx);
-#endif
 
 	//平行移動行列の取得
 	VECTOR moveTrans = m_pos;
@@ -440,9 +596,6 @@ void Player::updateSwim()
 	MV1SetMatrix(m_pModel->getModelHandle(), moveMult);
 
 
-	m_pEffekseer->update();
-	//m_pModel->setPos(m_pos);
-	m_pModel->setRot(VGet(0.0f, m_angle, 0.0f));
-	
 	updateCamera();
+
 }

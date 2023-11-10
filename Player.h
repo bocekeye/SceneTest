@@ -11,7 +11,9 @@
 class PlayerManager;
 class Model;
 class EffekseerManager;
+class ultrasound;
 class Enemy;
+class SceneMain;
 
 class Player
 {
@@ -34,10 +36,21 @@ public:
 
 	void setEffekseer(EffekseerManager* effekseer){m_pEffekseer = effekseer;}
 
+	void setSceneMain(SceneMain* sceneMain){ m_pSceneMain = sceneMain; }
+
 	int getHandle() const;
 	int getColFrameIndex()const;
 
 	void getMaxReachedPoint(float jumpAcc);
+
+	/// <summary>
+	/// プレイヤーが向いている方向
+	/// </summary>
+	/// <returns>角度</returns>
+	float getAngle() { return m_angle; } 
+
+	//水面にいるかどうか
+	bool isSurface() const {return m_isSurfaceTest;}
 
 	//bool isCol(Enemy& enemy);
 
@@ -46,8 +59,8 @@ public:
 	float getLeft() { return m_pos.x - 157.0f; }
 	float getTop() { return m_pos.y + 214.0f; }
 	float getBottom() { return m_pos.y - 86.0f; }
-	float getFar() { return m_pos.z + 459.0f; }
-	float getNear() { return m_pos.z - 460.0f; }
+	float getNear() { return m_pos.z + 459.0f; }
+	float getFar() { return m_pos.z - 460.0f; }
 
 private:
 
@@ -56,6 +69,9 @@ private:
 
 	//泳ぐ
 	void updateSwim();
+
+	//潜る
+	void updateDive();
 
 	//アニメーション
 	//void playAnim();
@@ -72,11 +88,15 @@ private:
 	//メンバ関数ポインタ
 	void(Player::* m_updateFunc)();
 
-	//エネミークラスを使うポインタ
-//	std::shared_ptr<Enemy>
+	//超音波クラスを使うポインタ
+	//std::shared_ptr<ultrasound> m_pUltrasound;
+
+	SceneMain* m_pSceneMain;
 
 	//プレイヤーのモデル
 	std::shared_ptr<Model> m_pModel;
+
+
 	EffekseerManager* m_pEffekseer;
 
 	//std::map<MotionType, std::shared_ptr<Model>> m_pModel;
@@ -92,8 +112,14 @@ private:
 	//ジャンプ処理用加速度
 	float m_jumpAcc;
 
+	//潜水力
+	float m_diveAcc;
+
 	//重力
 	float m_gravity;
+
+	//浮力
+	float m_buoyancy;
 
 	//プレイヤーの向いている方向
 	float m_angle;
@@ -116,6 +142,8 @@ private:
 	int m_psH;
 	int m_cbH;
 	int m_distH = 0;
+
+	int m_circleGauge;
 
 	int m_triangle = 0;
 	float* m_cbufferAdress;
@@ -144,6 +172,13 @@ private:
 	bool m_isPushPressKey = false;
 	float m_maxReachedPoint = 0.0f;
 	float m_jumpPowerStrage = 0.0f;
+
+	//ダメージを食らったかどうか
+	bool m_isDameged;
+
+	bool m_isDisplayEffekseer;
+
+	bool m_isSurfaceTest = false;
 
 };
 

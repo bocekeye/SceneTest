@@ -17,7 +17,7 @@ namespace
 Enemy::Enemy(Player& player):
 	m_pPlayer(player),
 	m_pos(VGet(0,100,-1000)),
-	m_isExist(true),
+	m_isExist(false),
 	m_randomNum(0.0f),
 	m_radius(500.0f),
 	m_createRandomInterval(0)
@@ -56,7 +56,7 @@ void Enemy::update()
 	m_testTime += 5.1f;
 	float rad = DX_PI_F * m_testAngle / 180.0f;
 
-	m_pos.z -= 10.0f;
+	//m_pos.z -= 10.0f;
 
 	m_pModel->setPos(m_pos);
 	m_pModel->setRot(VGet(0,0,0));
@@ -70,6 +70,13 @@ void Enemy::draw()
 
 	m_pModel->draw();
 
+
+#if _DEBUG
+
+	DrawString(500, 20, "‹›", 0xffffff);
+	DrawFormatString(450,50,0xfffffff,"%f",getFar());
+
+#endif
 	//DrawSphere3D(m_pos,50,10,0xffffff,0xffffff,true);
 
 }
@@ -92,8 +99,8 @@ bool Enemy::isCol(Player& player)
 	if (player.getRight() < getLeft()) return false;
 	if (player.getTop() < getBottom()) return false;
 	if (player.getBottom() > getTop()) return false;
-	if (player.getNear() > getFar()) return false;
-	if (player.getFar() < getNear()) return false;
+	if (player.getNear() < getFar()) return false;
+	if (player.getFar() > getNear()) return false;
 
 	return true;
 }

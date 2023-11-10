@@ -2,6 +2,8 @@
 
 #include "SceneBase.h"
 #include <memory>
+#include <vector>
+#include <DxLib.h>
 
 class SceneManager;
 class Player;
@@ -9,6 +11,7 @@ class EnemyManager;
 class PlayerManager;
 class Log;
 class Ring;
+class ultrasound;
 class EffekseerManager;
 
 class SceneMain : public SceneBase
@@ -23,6 +26,8 @@ public:
 	 void update();
 	 void draw();
 
+	 void ultrasoundStart(VECTOR start,VECTOR vec);
+
 private:
 
 	//プレイヤーを使うためのポインタ
@@ -33,6 +38,9 @@ private:
 	std::shared_ptr<Log> m_pLog;
 	//輪っかを使うためのポインタ
 	std::shared_ptr<Ring> m_pRing;
+	//超音波を使うためのポインタ
+	std::vector<std::shared_ptr<ultrasound>> m_pUltrasound;
+
 
 	EffekseerManager* m_pEffekseer;
 
@@ -40,4 +48,5 @@ private:
 	int m_gameScreen;
 	int m_shader;
 
+	int m_underwaterH;
 };

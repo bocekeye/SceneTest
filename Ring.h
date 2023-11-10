@@ -3,6 +3,7 @@
 #include <memory>
 
 class Player;
+class Model;
 
 class Ring
 {
@@ -14,11 +15,16 @@ public:
 	void update();
 	void draw();
 
+	//存在するかどうか
+	bool isExist() const { return m_isExist; }
+
 	//輪っかの位置を取得する
 	VECTOR getPos() const { return m_pos; }
 
 	//ダメージを受けた
 	void onDamege();
+
+	void create();
 
 	//当たり判定
 	bool isCol(Player& player);
@@ -33,11 +39,18 @@ public:
 
 private:
 
+	std::shared_ptr<Model> m_pModel;
+
 	//座標
 	VECTOR m_pos;
 	//参照渡し
 	Player& m_pPlayer;
 	//存在するか
 	bool m_isExist;
+
+
+	float m_radius;	//半径
+	float m_angle;
+
 };
 

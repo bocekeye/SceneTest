@@ -14,28 +14,32 @@ public:
 	void update();
 	void draw();
 
+	//‘¶İ‚·‚é‚©‚Ç‚¤‚©
 	bool isExist() const { return m_isExist; }
 
 	VECTOR getPos() const { return m_pos; }
 
 	void onDamege();
 
+	void create();
+
 	bool isCol(Player& player);
 
 	//ƒ‚ƒfƒ‹‚Ì‘å‚«‚³‚Ìæ“¾—p
-	float getRight() { return m_pos.x + kWidth; }
-	float getLeft() { return m_pos.x - kWidth; }
+	float getRight() { return m_pos.x + kWidth + m_randomNum; }
+	float getLeft() { return m_pos.x - kWidth + m_randomNum; }
 	float getTop() { return m_pos.y + kHeight; }
 	float getBottom() { return m_pos.y - kHeight; }
-	float getFar() { return m_pos.z + kRadius /2; }
-	float getNear() { return m_pos.z - kRadius / 2; }
+	float getNear() { return m_pos.z; }
+	float getFar() { return m_pos.z ; }
+
 
 private:
 
 	//ƒ‚ƒfƒ‹‚Ì‘å‚«‚³(‰¼)
-	const float kWidth = 300.0f;
+	const float kWidth = 400.0f;
 	const float kHeight = 50.0f;
-	const float kRadius = 50.0f;
+	const float kRadius = 100.0f;
 
 private:
 
@@ -45,5 +49,8 @@ private:
 	Player& m_pPlayer;
 	//‘¶İ‚·‚é‚©
 	bool m_isExist;
+
+	//—”•Û‘¶
+	int m_randomNum;
 };
 
